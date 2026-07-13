@@ -38,3 +38,39 @@ stages:
               provider: 'azurerm'
               command: 'plan'
               environmentServiceNameAzureRM: '$(serviceConnection)'
+              
+  - stage: Deploy_Cluster
+    displayName: "Terraform Apply"
+    dependsOn: Build_Plan
+    condition: succeeded()
+    jobs:
+      - deployment: Apply
+        displayName: "Deploy AKS Cluster"
+        environment: 'Production-Environment' # Use environment checks in Azure DevOps for approval gates
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: 'latest'
+
+                - task: TerraformTaskV4@4
+                  displayName: "Terraform Init"
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'init'
+                    backendServiceArm: '$(serviceConnection)'
+                    backendAzureRmResourceGroupName: '$(resourceGroup)'
+                    backendAzureRmStorageAccountName: '$(storageAccount)'
+                    backendAzureRmContainerName: '$(containerName)'
+                    backendAzureRmKey: '$(stateKey)'
+
+                - task: TerraformTaskV4@4
+                  displayName: "Terraform Apply"
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'apply'
+                    environmentServiceNameAzureRM: '$(serviceConnection)'
