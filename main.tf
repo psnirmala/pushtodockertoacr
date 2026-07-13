@@ -1,31 +1,29 @@
-
-variable client_id {}
-variable client_secret {}
-
-
-resource "azurerm_resource_group" "aks_rg" {
-  name     = var.resource_group_name
-  location = var.location
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
 }
 
-resource "azurerm_kubernetes_cluster" "aks" {
-  name                = var.cluster_name
-  location            = var.azurerm_resource_group.aks_rg.location
-  resource_group_name = var.azurerm_resource_group.aks_rg.name
-  dns_prefix          = var.dns_prefix
+provider "azurerm" {
+  features {}
+}
 
-  default_node_pool {
-    name       = "systempool"
-    node_count = 2
-    vm_size    = "Standard_D2s_v5"
-  }
+resource "azurerm_resource_group" "rg" {
+  name     = "python-app-rg"
+  location = "East US"
+}
 
-  service_principal {
-    client_id     = var.client_id
-    client_secret = var.client_secret
-  }
+resource "azurerm_container_registry" "acr" {
+  name                = "pythondockerregistry2026111" # Must be globally unique
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Basic"
+  admin_enabled       = false # Disabled for security; we will use the Service Principal instead
+}
 
-  tags = {
-    Environment = "Production"
-  }
+output "acr_login_server" {
+  value = azurerm_container_registry.acr.login_server
 }
